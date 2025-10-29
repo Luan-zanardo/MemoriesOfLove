@@ -41,9 +41,6 @@ export default function HeroSection({
           <p className="mt-4 text-lg md:text-2xl">
             💫 Juntos há <span className="font-bold">{daysTogether}</span> dias 💫
           </p>
-          <p className="mt-2 italic text-sm md:text-base opacity-80">
-            Desde o Dia dos Pais de 2025 💕
-          </p>
         </>
       )}
     </section>

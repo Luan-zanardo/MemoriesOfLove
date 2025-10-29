@@ -7,8 +7,7 @@ export default function Navbar() {
   const { isEditing, setIsEditing } = useEdit();
 
   return (
-    <nav className="flex items-center justify-between px-6 md:px-10 py-4
-                    bg-linear-to-r from-pink-300 to-purple-300 shadow-md sticky top-0 z-50">
+    <nav className="flex items-center justify-between px-6 md:px-10 py-4 bg-linear-to-r from-pink-300 to-purple-300 shadow-md sticky top-0 z-50">
       <div className="text-lg md:text-xl font-bold text-white tracking-wide flex-1 text-center md:text-left">
         💞 L&A Memories
       </div>

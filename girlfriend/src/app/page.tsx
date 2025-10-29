@@ -5,7 +5,6 @@ import HeroSection from "./Components/HeroSection";
 import DescriptionSection from "./Components/DescriptionSection";
 import ImageSlider from "./Components/ImageSlider";
 import PlaylistSection from "./Components/PlaylistSection";
-import Navbar from "./Components/Navbar";
 
 export default function HomePage() {
   const [isEditing, setIsEditing] = useState(false);
@@ -19,6 +18,9 @@ export default function HomePage() {
     "Lorem ipsum dolor sit amet, consectetur adipiscing elit."
   );
   const [tempImages, setTempImages] = useState<string[]>(["/img1.jpg", "/img2.jpg"]);
+  const [tempPlaylistUrl, setTempPlaylistUrl] = useState(
+    "https://open.spotify.com/embed/track/6Pa6VpdGS8OfiVOEnNAHHw?utm_source=generator"
+  );
 
   // Estados permanentes
   const [name1, setName1] = useState(tempName1);
@@ -27,6 +29,7 @@ export default function HomePage() {
   const [title, setTitle] = useState(tempTitle);
   const [description, setDescription] = useState(tempDescription);
   const [images, setImages] = useState(tempImages);
+  const [playlistUrl, setPlaylistUrl] = useState(tempPlaylistUrl);
 
   const [daysTogether, setDaysTogether] = useState(0);
 
@@ -44,6 +47,7 @@ export default function HomePage() {
     setTitle(tempTitle);
     setDescription(tempDescription);
     setImages(tempImages);
+    setPlaylistUrl(tempPlaylistUrl);
     setIsEditing(false);
   };
 
@@ -54,24 +58,31 @@ export default function HomePage() {
     setTempTitle(title);
     setTempDescription(description);
     setTempImages(images);
+    setTempPlaylistUrl(playlistUrl);
     setIsEditing(false);
   };
 
   return (
-    <div className="min-h-screen w-full bg-linear-to-br from-pink-300 to-purple-300 text-gray-900">
+    <div className="min-h-screen w-full bg-linear-to-br from-pink-300 to-purple-300 text-gray-900 relative pb-24">
       {/* Botões de edição / salvar */}
-      <div className="flex justify-end gap-3 p-4">
+      <div
+        className={`flex gap-3 p-4 transition-all duration-300 ${
+          isEditing
+            ? "fixed bottom-4 right-4 z-50"
+            : "absolute bottom-4 left-1/2 -translate-x-1/2"
+        }`}
+      >
         {isEditing ? (
           <>
             <button
               onClick={handleSave}
-              className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-full font-semibold transition"
+              className="bg-green-500 hover:bg-green-600 text-white px-5 py-2 rounded-full font-semibold transition shadow-lg"
             >
               Salvar
             </button>
             <button
               onClick={handleCancel}
-              className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-full font-semibold transition"
+              className="bg-red-500 hover:bg-red-600 text-white px-5 py-2 rounded-full font-semibold transition shadow-lg"
             >
               Cancelar
             </button>
@@ -79,39 +90,46 @@ export default function HomePage() {
         ) : (
           <button
             onClick={() => setIsEditing(true)}
-            className="bg-white text-pink-500 px-4 py-2 rounded-full font-semibold hover:bg-pink-50 transition"
+            className="bg-white text-pink-400 px-6 py-2 rounded-full font-semibold shadow-md hover:bg-pink-50 transition"
           >
             Editar Página
           </button>
         )}
       </div>
 
-      <HeroSection
-        isEditing={isEditing}
-        name1={tempName1}
-        setName1={setTempName1}
-        name2={tempName2}
-        setName2={setTempName2}
-        startDate={tempStartDate}
-        setStartDate={setTempStartDate}
-        daysTogether={daysTogether}
-      />
+      {/* Conteúdo */}
+      <div className="flex flex-col gap-8 mx-auto max-w-5xl px-4 pt-8">
+        <HeroSection
+          isEditing={isEditing}
+          name1={tempName1}
+          setName1={setTempName1}
+          name2={tempName2}
+          setName2={setTempName2}
+          startDate={tempStartDate}
+          setStartDate={setTempStartDate}
+          daysTogether={daysTogether}
+        />
 
-      <DescriptionSection
-        isEditing={isEditing}
-        title={tempTitle}
-        setTitle={setTempTitle}
-        description={tempDescription}
-        setDescription={setTempDescription}
-      />
+        <DescriptionSection
+          isEditing={isEditing}
+          title={tempTitle}
+          setTitle={setTempTitle}
+          description={tempDescription}
+          setDescription={setTempDescription}
+        />
 
-      <ImageSlider
-        isEditing={isEditing}
-        images={tempImages}
-        setImages={setTempImages}
-      />
+        <ImageSlider
+          isEditing={isEditing}
+          images={tempImages}
+          setImages={setTempImages}
+        />
 
-      <PlaylistSection />
+        <PlaylistSection
+          playlistUrl={playlistUrl}
+          setPlaylistUrl={isEditing ? setTempPlaylistUrl : setPlaylistUrl}
+          isEditing={isEditing}
+        />
+      </div>
     </div>
   );
 }

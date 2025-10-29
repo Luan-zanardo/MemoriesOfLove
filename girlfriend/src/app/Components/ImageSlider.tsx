@@ -1,54 +1,113 @@
 "use client";
 
 import Image from "next/image";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
-export default function ImageSlider({ isEditing, images, setImages }: any) {
-  const [currentImage, setCurrentImage] = useState(0);
+type ImageSliderProps = {
+  isEditing: boolean;
+  images: string[];
+  setImages: (images: string[]) => void;
+};
 
-  useEffect(() => {
-    if (images.length === 0) return;
-    const interval = setInterval(() => {
-      setCurrentImage((prev) => (prev + 1) % images.length);
-    }, 4000);
-    return () => clearInterval(interval);
-  }, [images]);
+export default function ImageSlider({
+  isEditing,
+  images,
+  setImages,
+}: ImageSliderProps) {
+  const [currentIndex, setCurrentIndex] = useState(0);
 
-  const handleUpload = (e: any) => {
-    const files = e.target.files;
-    if (!files) return;
-    const urls = Array.from(files).map((f: any) => URL.createObjectURL(f));
+  const prevImage = () => {
+    setCurrentIndex((prev) => (prev - 1 + images.length) % images.length);
+  };
+
+  const nextImage = () => {
+    setCurrentIndex((prev) => (prev + 1) % images.length);
+  };
+
+  const handleUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files) return;
+    const files = Array.from(e.target.files);
+    const urls = files.map((file) => URL.createObjectURL(file));
     setImages([...images, ...urls]);
   };
 
-  if (images.length === 0) return null;
+  const removeImage = (index: number) => {
+    const newImages = images.filter((_, i) => i !== index);
+    setImages(newImages);
+    if (currentIndex >= newImages.length) setCurrentIndex(0);
+  };
+
+  // Garante pelo menos 3 imagens visíveis usando a imagem branca como fallback
+  const paddedImages =
+    images.length >= 3
+      ? images
+      : [...images, ...Array(3 - images.length).fill("/imgwhite.png")];
+
+  const visibleImages = [
+    paddedImages[(currentIndex - 1 + paddedImages.length) % paddedImages.length],
+    paddedImages[currentIndex % paddedImages.length],
+    paddedImages[(currentIndex + 1) % paddedImages.length],
+  ];
+
+  const showNavButtons = images.length >= 3;
 
   return (
-    <section className="relative flex justify-center items-center py-12 bg-linear-to-b from-purple-200 to-pink-100">
-      <div className="w-[95%] sm:w-[85%] md:w-[70%] lg:w-[55%] aspect-video-16/9 overflow-hidden rounded-2xl shadow-lg relative">
-        <Image
-          src={images[currentImage]}
-          alt="Memória"
-          fill
-          className="object-cover transition-all duration-700 ease-in-out"
-        />
-      </div>
-
-      <div className="absolute bottom-6 flex gap-3">
-        {images.map((_: any, i: number) => (
+    <section className="relative py-12 w-full flex flex-col items-center bg-pink-100/60 rounded-2xl shadow-lg overflow-hidden">
+      <div className="relative w-full max-w-5xl flex items-center justify-center gap-4 px-6 md:px-12">
+        {/* Botão esquerdo */}
+        {showNavButtons && (
           <button
-            key={i}
-            className={`w-3 h-3 rounded-full ${
-              i === currentImage ? "bg-pink-500" : "bg-white/50"
-            }`}
-            onClick={() => setCurrentImage(i)}
-          />
-        ))}
+            onClick={prevImage}
+            className="bg-white/80 text-pink-600 rounded-full p-3 hover:bg-white shadow-md z-10 flex items-center justify-center"
+          >
+            ‹
+          </button>
+        )}
+
+        {/* Imagens visíveis */}
+        <div className="flex gap-4 flex-1 justify-center min-w-0">
+          {visibleImages.map((img, idx) => {
+            const globalIndex =
+              (currentIndex - 1 + idx + paddedImages.length) % paddedImages.length;
+            return (
+              <div
+                key={idx}
+                className="relative flex-1 aspect-square rounded-2xl shadow-lg overflow-hidden border-7 border-pink-300"
+              >
+                <Image
+                  src={img}
+                  alt={`Memória ${idx}`}
+                  fill
+                  className="object-cover shadow-md"
+                />
+                {isEditing && globalIndex < images.length && (
+                  <button
+                    onClick={() => removeImage(globalIndex)}
+                    className="absolute top-2 right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center hover:bg-red-600 shadow-md"
+                  >
+                    ×
+                  </button>
+                )}
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Botão direito */}
+        {showNavButtons && (
+          <button
+            onClick={nextImage}
+            className="bg-white/80 text-pink-600 rounded-full p-3 hover:bg-white shadow-md z-10 flex items-center justify-center"
+          >
+            ›
+          </button>
+        )}
       </div>
 
+      {/* Upload no modo edição */}
       {isEditing && (
-        <div className="absolute top-4 right-4">
-          <label className="cursor-pointer bg-white text-pink-600 px-3 py-2 rounded-md font-semibold hover:bg-pink-50 transition text-sm md:text-base">
+        <div className="mt-6">
+          <label className="cursor-pointer bg-white text-pink-600 px-4 py-2 rounded-md font-semibold hover:bg-pink-50 transition text-sm md:text-base">
             + Adicionar Fotos
             <input
               type="file"

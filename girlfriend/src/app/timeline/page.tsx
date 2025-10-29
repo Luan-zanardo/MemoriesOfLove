@@ -29,7 +29,6 @@ export default function TimelinePage() {
     if (isEditing && editingPost) {
       const updatedImages = [...(editingPost.images ?? []), ...newImages];
       setEditingPost({ ...editingPost, images: updatedImages });
-      // Ajusta índice se necessário
       setCurrentImageIndex((prev) => ({
         ...prev,
         [editingPost.id]: Math.min(prev[editingPost.id] ?? 0, updatedImages.length - 1),
@@ -45,12 +44,8 @@ export default function TimelinePage() {
       updated.splice(index, 1);
       setEditingPost({ ...editingPost, images: updated });
 
-      // Ajusta índice da imagem
-      setCurrentImageIndex((prev) => {
-        const currentIndex = prev[editingPost.id] ?? 0;
-        const newIndex = currentIndex >= updated.length ? 0 : currentIndex;
-        return { ...prev, [editingPost.id]: newIndex };
-      });
+      // se excluiu a atual, volta para a primeira
+      setCurrentImageIndex((prev) => ({ ...prev, [editingPost.id]: 0 }));
     } else {
       const updated = [...newPost.images];
       updated.splice(index, 1);
@@ -59,6 +54,14 @@ export default function TimelinePage() {
   };
 
   const handleSavePost = () => {
+    if (
+      (!editingPost && !newPost.title.trim() && !newPost.description.trim() && newPost.images.length === 0) ||
+      (editingPost && !editingPost.title.trim() && !editingPost.description.trim() && (editingPost.images?.length ?? 0) === 0)
+    ) {
+      alert("Não é possível salvar uma publicação vazia!");
+      return;
+    }
+
     if (editingPost) {
       setPosts(posts.map((p) => (p.id === editingPost.id ? editingPost : p)));
       setEditingPost(null);
@@ -94,7 +97,6 @@ export default function TimelinePage() {
   const formatDate = (date: Date) =>
     `${date.toLocaleDateString()} ${date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`;
 
-  // Filtrar e ordenar posts
   let displayedPosts = [...posts];
   if (filterDate) {
     displayedPosts = displayedPosts.filter(
@@ -143,14 +145,14 @@ export default function TimelinePage() {
         <button
           onClick={() => {
             setShowForm(!showForm);
-            setEditingPost(null); // sair do modo edição ao adicionar nova publicação
+            setEditingPost(null);
           }}
           className="w-full mb-6 bg-pink-500 hover:bg-pink-600 text-white font-semibold py-2 rounded-lg shadow-md transition"
         >
           {showForm ? "Cancelar" : "Nova Publicação"}
         </button>
 
-        {/* Formulário de nova publicação */}
+        {/* Formulário */}
         {showForm && (
           <div className="bg-white p-4 rounded-lg shadow-lg mb-6 border border-pink-200">
             <input
@@ -166,7 +168,7 @@ export default function TimelinePage() {
               onChange={(e) => setNewPost({ ...newPost, description: e.target.value })}
               className="w-full mb-3 p-2 rounded-lg border border-pink-300 bg-pink-50 text-gray-700 focus:outline-none focus:ring-2 focus:ring-pink-400"
             />
-            <label className="flex justify-center items-center mb-3 w-full font-medium bg-pink-500 hover:bg-pink-600 text-white px-4 py-2 rounded-lg cursor-pointer transition">
+            <label className="flex justify-center items-center mb-3 w-full font-medium bg-pink-500 hover:bg-pink-600 text-white px-4 py-2 rounded-lg cursor-pointer transition text-center">
               Adicionar Fotos
               <input type="file" multiple accept="image/*" onChange={(e) => handleAddImage(e)} className="hidden" />
             </label>
@@ -174,11 +176,7 @@ export default function TimelinePage() {
               <div className="flex flex-wrap gap-2 mb-3">
                 {newPost.images.map((img, i) => (
                   <div key={i} className="relative">
-                    <img
-                      src={img}
-                      alt=""
-                      className="w-24 h-24 object-cover rounded-lg border border-pink-200"
-                    />
+                    <img src={img} alt="" className="w-24 h-24 object-cover rounded-lg border border-pink-200" />
                     <button
                       onClick={() => handleDeleteImage(i)}
                       className="absolute top-1 right-1 bg-black/40 text-white text-xs px-2 py-1 rounded"
@@ -198,7 +196,7 @@ export default function TimelinePage() {
           </div>
         )}
 
-        {/* Lista de publicações */}
+        {/* Lista de Publicações */}
         {displayedPosts.map((post) => {
           const index = currentImageIndex[post.id] ?? 0;
           const hasImages = post.images && post.images.length > 0;
@@ -209,7 +207,7 @@ export default function TimelinePage() {
               key={post.id}
               className="bg-white rounded-lg p-4 mb-6 shadow-lg border border-pink-200 relative overflow-hidden"
             >
-              {/* Menu 3 pontinhos */}
+              {/* Menu */}
               <div className="absolute top-2 right-2">
                 <button
                   onClick={() => setMenuOpenId(menuOpenId === post.id ? null : post.id)}
@@ -242,9 +240,9 @@ export default function TimelinePage() {
               <h2 className="text-xl font-bold text-pink-600">{post.title}</h2>
               <p className="text-gray-700 mb-3">{post.description}</p>
 
-              {/* Imagens */}
+              {/* Imagem quadrada fixa */}
               {hasImages && (
-                <div className="relative w-full h-64 rounded-lg overflow-hidden">
+                <div className="relative w-full aspect-square rounded-lg overflow-hidden">
                   <img
                     src={post.images![index]}
                     alt=""
@@ -271,7 +269,7 @@ export default function TimelinePage() {
 
               <p className="text-xs text-gray-400 mt-2">{formatDate(post.createdAt)}</p>
 
-              {/* Edição da publicação */}
+              {/* Edição */}
               {isEditingThis && (
                 <div className="bg-white p-4 rounded-lg shadow-lg border border-pink-200 mt-4 min-h-[200px]">
                   <input
@@ -308,7 +306,7 @@ export default function TimelinePage() {
                     ))}
                   </div>
 
-                  <label className="flex justify-center items-center mb-3 w-full font-medium bg-pink-500 hover:bg-pink-600 text-white px-4 py-2 rounded-lg cursor-pointer transition">
+                  <label className="flex justify-center items-center mb-3 w-full font-medium bg-pink-500 hover:bg-pink-600 text-white px-4 py-2 rounded-lg cursor-pointer transition text-center">
                     Adicionar mais fotos
                     <input
                       type="file"
