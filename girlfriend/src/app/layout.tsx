@@ -16,11 +16,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="pt-BR">
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased min-h-screen bg-gradient-to-b from-pink-100 to-purple-200`}
+        className={`${geistSans.variable} ${geistMono.variable} antialiased min-h-screen bg-linear-to-b from-pink-100 to-purple-200`}
       >
         <EditProvider>
           <Navbar />
-          <main className="pt-4">{children}</main>
+          <main>{children}</main>
         </EditProvider>
       </body>
     </html>

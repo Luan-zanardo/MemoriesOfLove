@@ -1,213 +1,335 @@
 "use client";
 
-import React, { useState } from "react";
-import { v4 as uuidv4 } from "uuid";
+import { useState } from "react";
 
 type Post = {
-  id: string;
-  text?: string;
-  image?: string | null;
-  date: string;
+  id: number;
+  title: string;
+  description: string;
+  images?: string[];
+  createdAt: Date;
 };
 
 export default function TimelinePage() {
   const [posts, setPosts] = useState<Post[]>([]);
-  const [text, setText] = useState("");
-  const [image, setImage] = useState<string | null>(null);
-  const [search, setSearch] = useState("");
-  const [sortOrder, setSortOrder] = useState<"newest" | "oldest">("newest");
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [editedText, setEditedText] = useState("");
+  const [editingPost, setEditingPost] = useState<Post | null>(null);
+  const [newPost, setNewPost] = useState({ title: "", description: "", images: [] as string[] });
+  const [showForm, setShowForm] = useState(false);
+  const [currentImageIndex, setCurrentImageIndex] = useState<{ [key: number]: number }>({});
+  const [menuOpenId, setMenuOpenId] = useState<number | null>(null);
+  const [sortOrder, setSortOrder] = useState<"recent" | "oldest">("recent");
+  const [filterDate, setFilterDate] = useState<string>("");
 
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  const handleAddImage = (e: React.ChangeEvent<HTMLInputElement>, isEditing = false) => {
+    const files = e.target.files;
+    if (!files) return;
 
-    const reader = new FileReader();
-    reader.onload = () => setImage(reader.result as string);
-    reader.readAsDataURL(file);
-  };
+    const newImages = Array.from(files).map((file) => URL.createObjectURL(file));
 
-  const handleAddPost = () => {
-    if (!text && !image) {
-      alert("Por favor, adicione uma descrição ou uma imagem antes de postar.");
-      return;
+    if (isEditing && editingPost) {
+      const updatedImages = [...(editingPost.images ?? []), ...newImages];
+      setEditingPost({ ...editingPost, images: updatedImages });
+      // Ajusta índice se necessário
+      setCurrentImageIndex((prev) => ({
+        ...prev,
+        [editingPost.id]: Math.min(prev[editingPost.id] ?? 0, updatedImages.length - 1),
+      }));
+    } else {
+      setNewPost({ ...newPost, images: [...newPost.images, ...newImages] });
     }
-
-    const newPost: Post = {
-      id: uuidv4(),
-      text: text.trim() ? text : undefined,
-      image: image ?? null,
-      date: new Date().toISOString(),
-    };
-
-    setPosts((prev) => [newPost, ...prev]);
-    setText("");
-    setImage(null);
   };
 
-  const handleDelete = (id: string) => {
-    setPosts((prev) => prev.filter((post) => post.id !== id));
+  const handleDeleteImage = (index: number, isEditing = false) => {
+    if (isEditing && editingPost) {
+      const updated = [...(editingPost.images ?? [])];
+      updated.splice(index, 1);
+      setEditingPost({ ...editingPost, images: updated });
+
+      // Ajusta índice da imagem
+      setCurrentImageIndex((prev) => {
+        const currentIndex = prev[editingPost.id] ?? 0;
+        const newIndex = currentIndex >= updated.length ? 0 : currentIndex;
+        return { ...prev, [editingPost.id]: newIndex };
+      });
+    } else {
+      const updated = [...newPost.images];
+      updated.splice(index, 1);
+      setNewPost({ ...newPost, images: updated });
+    }
   };
 
-  const handleEdit = (id: string, currentText: string | undefined) => {
-    setEditingId(id);
-    setEditedText(currentText || "");
+  const handleSavePost = () => {
+    if (editingPost) {
+      setPosts(posts.map((p) => (p.id === editingPost.id ? editingPost : p)));
+      setEditingPost(null);
+    } else {
+      setPosts([
+        ...posts,
+        { id: Date.now(), ...newPost, createdAt: new Date() },
+      ]);
+      setNewPost({ title: "", description: "", images: [] });
+      setShowForm(false);
+    }
   };
 
-  const handleSaveEdit = (id: string) => {
-    setPosts((prev) =>
-      prev.map((p) => (p.id === id ? { ...p, text: editedText } : p))
+  const handleNextImage = (postId: number) => {
+    setCurrentImageIndex((prev) => {
+      const post = posts.find((p) => p.id === postId);
+      if (!post?.images) return prev;
+      const nextIndex = ((prev[postId] ?? 0) + 1) % post.images.length;
+      return { ...prev, [postId]: nextIndex };
+    });
+  };
+
+  const handlePrevImage = (postId: number) => {
+    setCurrentImageIndex((prev) => {
+      const post = posts.find((p) => p.id === postId);
+      if (!post?.images) return prev;
+      const length = post.images.length;
+      const nextIndex = ((prev[postId] ?? 0) - 1 + length) % length;
+      return { ...prev, [postId]: nextIndex };
+    });
+  };
+
+  const formatDate = (date: Date) =>
+    `${date.toLocaleDateString()} ${date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`;
+
+  // Filtrar e ordenar posts
+  let displayedPosts = [...posts];
+  if (filterDate) {
+    displayedPosts = displayedPosts.filter(
+      (p) => p.createdAt.toISOString().split("T")[0] === filterDate
     );
-    setEditingId(null);
-  };
+  }
+  displayedPosts.sort((a, b) =>
+    sortOrder === "recent" ? b.createdAt.getTime() - a.createdAt.getTime() : a.createdAt.getTime() - b.createdAt.getTime()
+  );
 
-  const filteredPosts = posts
-    .filter((p) => {
-      if (!search) return true;
-      const dateString = new Date(p.date).toLocaleDateString("pt-BR");
-      return dateString.includes(search);
-    })
-    .sort((a, b) =>
-      sortOrder === "newest"
-        ? new Date(b.date).getTime() - new Date(a.date).getTime()
-        : new Date(a.date).getTime() - new Date(b.date).getTime()
-    );
+  const clearFilters = () => {
+    setFilterDate("");
+    setSortOrder("recent");
+  };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-pink-200 to-purple-200 p-6">
-      <h1 className="text-3xl font-bold text-center text-pink-600 mb-8">
-        Nossa Linha do Tempo 💕
-      </h1>
+    <div className="min-h-screen bg-linear-to-b from-pink-100 to-pink-300 p-6">
+      <div className="max-w-2xl mx-auto">
+        {/* Filtros */}
+        <div className="flex flex-col sm:flex-row gap-3 mb-4 justify-center items-center">
+          <select
+            value={sortOrder}
+            onChange={(e) => setSortOrder(e.target.value as "recent" | "oldest")}
+            className="p-2 rounded-lg border border-pink-300 bg-pink-50 text-gray-700 focus:outline-none focus:ring-2 focus:ring-pink-400"
+          >
+            <option value="recent">Mais recentes</option>
+            <option value="oldest">Mais antigos</option>
+          </select>
 
-      {/* Barra de filtro */}
-      <div className="flex flex-col md:flex-row justify-between items-center gap-4 mb-8">
-        <input
-          type="text"
-          placeholder="Pesquisar por data (ex: 29/10/2025)"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="p-2 rounded-lg border border-pink-400 w-full md:w-1/2"
-        />
-
-        <select
-          value={sortOrder}
-          onChange={(e) => setSortOrder(e.target.value as "newest" | "oldest")}
-          className="p-2 rounded-lg border border-pink-400"
-        >
-          <option value="newest">Mais recentes primeiro</option>
-          <option value="oldest">Mais antigas primeiro</option>
-        </select>
-      </div>
-
-      {/* Criar nova postagem */}
-      <div className="bg-white rounded-2xl shadow-lg p-6 mb-10">
-        <textarea
-          placeholder="Escreva algo especial..."
-          value={text}
-          onChange={(e) => setText(e.target.value)}
-          className="w-full p-3 rounded-lg border border-gray-300 mb-3 resize-none"
-          rows={3}
-        />
-
-        <input
-          type="file"
-          accept="image/*"
-          onChange={handleImageChange}
-          className="mb-3"
-        />
-
-        {image && (
-          <img
-            src={image}
-            alt="Preview"
-            className="w-full h-60 object-cover rounded-xl mb-3"
+          <input
+            type="date"
+            value={filterDate}
+            onChange={(e) => setFilterDate(e.target.value)}
+            className="p-2 rounded-lg border border-pink-300 bg-pink-50 text-gray-700 focus:outline-none focus:ring-2 focus:ring-pink-400"
           />
-        )}
 
+          <button
+            onClick={clearFilters}
+            className="p-2 bg-pink-500 hover:bg-pink-600 text-white font-semibold rounded-lg transition"
+          >
+            Limpar filtros
+          </button>
+        </div>
+
+        {/* Botão Nova Publicação */}
         <button
-          onClick={handleAddPost}
-          className="bg-pink-500 hover:bg-pink-600 text-white font-semibold py-2 px-6 rounded-full transition"
+          onClick={() => {
+            setShowForm(!showForm);
+            setEditingPost(null); // sair do modo edição ao adicionar nova publicação
+          }}
+          className="w-full mb-6 bg-pink-500 hover:bg-pink-600 text-white font-semibold py-2 rounded-lg shadow-md transition"
         >
-          Publicar
+          {showForm ? "Cancelar" : "Nova Publicação"}
         </button>
-      </div>
 
-      {/* Linha do tempo */}
-      <div className="space-y-6">
-        {filteredPosts.length === 0 ? (
-          <p className="text-center text-gray-500">
-            Nenhuma lembrança adicionada ainda 💭
-          </p>
-        ) : (
-          filteredPosts.map((post) => (
-            <div
-              key={post.id}
-              className="bg-white rounded-2xl shadow-md p-6 relative"
-            >
-              <p className="text-sm text-gray-500 mb-2">
-                {new Date(post.date).toLocaleString("pt-BR")}
-              </p>
-
-              {/* Campo de texto editável */}
-              {editingId === post.id ? (
-                <div className="space-y-3">
-                  <textarea
-                    value={editedText}
-                    onChange={(e) => setEditedText(e.target.value)}
-                    className="w-full p-3 rounded-lg border border-pink-300 resize-none"
-                    rows={3}
-                  />
-                  <div className="flex justify-end gap-3">
+        {/* Formulário de nova publicação */}
+        {showForm && (
+          <div className="bg-white p-4 rounded-lg shadow-lg mb-6 border border-pink-200">
+            <input
+              type="text"
+              placeholder="Título"
+              value={newPost.title}
+              onChange={(e) => setNewPost({ ...newPost, title: e.target.value })}
+              className="w-full mb-3 p-2 rounded-lg border border-pink-300 bg-pink-50 text-gray-700 focus:outline-none focus:ring-2 focus:ring-pink-400"
+            />
+            <textarea
+              placeholder="Descrição"
+              value={newPost.description}
+              onChange={(e) => setNewPost({ ...newPost, description: e.target.value })}
+              className="w-full mb-3 p-2 rounded-lg border border-pink-300 bg-pink-50 text-gray-700 focus:outline-none focus:ring-2 focus:ring-pink-400"
+            />
+            <label className="flex justify-center items-center mb-3 w-full font-medium bg-pink-500 hover:bg-pink-600 text-white px-4 py-2 rounded-lg cursor-pointer transition">
+              Adicionar Fotos
+              <input type="file" multiple accept="image/*" onChange={(e) => handleAddImage(e)} className="hidden" />
+            </label>
+            {newPost.images.length > 0 && (
+              <div className="flex flex-wrap gap-2 mb-3">
+                {newPost.images.map((img, i) => (
+                  <div key={i} className="relative">
+                    <img
+                      src={img}
+                      alt=""
+                      className="w-24 h-24 object-cover rounded-lg border border-pink-200"
+                    />
                     <button
-                      onClick={() => handleSaveEdit(post.id)}
-                      className="bg-green-500 text-white px-4 py-2 rounded-full hover:bg-green-600"
+                      onClick={() => handleDeleteImage(i)}
+                      className="absolute top-1 right-1 bg-black/40 text-white text-xs px-2 py-1 rounded"
                     >
-                      Salvar
-                    </button>
-                    <button
-                      onClick={() => setEditingId(null)}
-                      className="bg-gray-400 text-white px-4 py-2 rounded-full hover:bg-gray-500"
-                    >
-                      Cancelar
+                      ✕
                     </button>
                   </div>
-                </div>
-              ) : (
-                <>
-                  {post.text && (
-                    <p className="text-gray-800 text-lg mb-3 whitespace-pre-wrap">
-                      {post.text}
-                    </p>
-                  )}
+                ))}
+              </div>
+            )}
+            <button
+              onClick={handleSavePost}
+              className="w-full bg-pink-500 hover:bg-pink-600 text-white font-semibold py-2 rounded-lg transition"
+            >
+              Salvar Publicação
+            </button>
+          </div>
+        )}
 
-                  {post.image && (
-                    <img
-                      src={post.image}
-                      alt="Postagem"
-                      className="w-full h-80 object-cover rounded-xl mb-3"
-                    />
-                  )}
+        {/* Lista de publicações */}
+        {displayedPosts.map((post) => {
+          const index = currentImageIndex[post.id] ?? 0;
+          const hasImages = post.images && post.images.length > 0;
+          const isEditingThis = editingPost?.id === post.id;
 
-                  <div className="flex justify-end gap-3">
+          return (
+            <div
+              key={post.id}
+              className="bg-white rounded-lg p-4 mb-6 shadow-lg border border-pink-200 relative overflow-hidden"
+            >
+              {/* Menu 3 pontinhos */}
+              <div className="absolute top-2 right-2">
+                <button
+                  onClick={() => setMenuOpenId(menuOpenId === post.id ? null : post.id)}
+                  className="text-gray-500 font-bold"
+                >
+                  ⋮
+                </button>
+                {menuOpenId === post.id && (
+                  <div className="absolute right-0 mt-1 bg-white border border-gray-300 rounded shadow-lg z-10 flex flex-col">
                     <button
-                      onClick={() => handleEdit(post.id, post.text)}
-                      className="text-blue-500 hover:underline"
+                      onClick={() => {
+                        setEditingPost(post);
+                        setShowForm(false);
+                        setMenuOpenId(null);
+                      }}
+                      className="px-3 py-1 hover:bg-pink-50 text-pink-500 text-left"
                     >
                       Editar
                     </button>
                     <button
-                      onClick={() => handleDelete(post.id)}
-                      className="text-red-500 hover:underline"
+                      onClick={() => setPosts(posts.filter((p) => p.id !== post.id))}
+                      className="px-3 py-1 hover:bg-red-50 text-red-500 text-left"
                     >
                       Excluir
                     </button>
                   </div>
-                </>
+                )}
+              </div>
+
+              <h2 className="text-xl font-bold text-pink-600">{post.title}</h2>
+              <p className="text-gray-700 mb-3">{post.description}</p>
+
+              {/* Imagens */}
+              {hasImages && (
+                <div className="relative w-full h-64 rounded-lg overflow-hidden">
+                  <img
+                    src={post.images![index]}
+                    alt=""
+                    className="w-full h-full object-cover transition duration-500"
+                  />
+                  {index > 0 && (
+                    <button
+                      onClick={() => handlePrevImage(post.id)}
+                      className="absolute left-3 top-1/2 -translate-y-1/2 bg-black/40 text-white text-2xl px-3 py-1 rounded-full hover:bg-black/60 transition"
+                    >
+                      ⟨
+                    </button>
+                  )}
+                  {index < (post.images?.length ?? 0) - 1 && (
+                    <button
+                      onClick={() => handleNextImage(post.id)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 bg-black/40 text-white text-2xl px-3 py-1 rounded-full hover:bg-black/60 transition"
+                    >
+                      ⟩
+                    </button>
+                  )}
+                </div>
+              )}
+
+              <p className="text-xs text-gray-400 mt-2">{formatDate(post.createdAt)}</p>
+
+              {/* Edição da publicação */}
+              {isEditingThis && (
+                <div className="bg-white p-4 rounded-lg shadow-lg border border-pink-200 mt-4 min-h-[200px]">
+                  <input
+                    type="text"
+                    value={editingPost?.title}
+                    onChange={(e) =>
+                      setEditingPost(editingPost ? { ...editingPost, title: e.target.value } : null)
+                    }
+                    className="w-full mb-3 p-2 rounded-lg border border-pink-300 bg-pink-50 text-gray-700 focus:outline-none focus:ring-2 focus:ring-pink-400"
+                  />
+                  <textarea
+                    value={editingPost?.description}
+                    onChange={(e) =>
+                      setEditingPost(editingPost ? { ...editingPost, description: e.target.value } : null)
+                    }
+                    className="w-full mb-3 p-2 rounded-lg border border-pink-300 bg-pink-50 text-gray-700 focus:outline-none focus:ring-2 focus:ring-pink-400"
+                  />
+
+                  <div className="flex flex-wrap gap-2 mb-3">
+                    {editingPost?.images?.map((img, i) => (
+                      <div key={i} className="relative">
+                        <img
+                          src={img}
+                          alt=""
+                          className="w-24 h-24 object-cover rounded-lg border border-pink-200"
+                        />
+                        <button
+                          onClick={() => handleDeleteImage(i, true)}
+                          className="absolute top-1 right-1 bg-black/40 text-white text-xs px-2 py-1 rounded"
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+
+                  <label className="flex justify-center items-center mb-3 w-full font-medium bg-pink-500 hover:bg-pink-600 text-white px-4 py-2 rounded-lg cursor-pointer transition">
+                    Adicionar mais fotos
+                    <input
+                      type="file"
+                      multiple
+                      accept="image/*"
+                      onChange={(e) => handleAddImage(e, true)}
+                      className="hidden"
+                    />
+                  </label>
+
+                  <button
+                    onClick={handleSavePost}
+                    className="w-full bg-pink-500 hover:bg-pink-600 text-white font-semibold py-2 rounded-lg transition"
+                  >
+                    Salvar Alterações
+                  </button>
+                </div>
               )}
             </div>
-          ))
-        )}
+          );
+        })}
       </div>
     </div>
   );

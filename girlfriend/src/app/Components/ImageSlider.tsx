@@ -24,8 +24,8 @@ export default function ImageSlider({ isEditing, images, setImages }: any) {
   if (images.length === 0) return null;
 
   return (
-    <section className="relative flex justify-center items-center py-12 bg-gradient-to-b from-purple-200 to-pink-100">
-      <div className="w-[95%] sm:w-[85%] md:w-[70%] lg:w-[55%] aspect-[16/9] overflow-hidden rounded-2xl shadow-lg relative">
+    <section className="relative flex justify-center items-center py-12 bg-linear-to-b from-purple-200 to-pink-100">
+      <div className="w-[95%] sm:w-[85%] md:w-[70%] lg:w-[55%] aspect-video-16/9 overflow-hidden rounded-2xl shadow-lg relative">
         <Image
           src={images[currentImage]}
           alt="Memória"
