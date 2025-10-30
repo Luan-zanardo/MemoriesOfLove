@@ -18,7 +18,7 @@ export default function HomePage() {
 
   // Títulos separados para cada componente
   const [tempStoryTitle, setTempStoryTitle] = useState("💖 Nossa história de amor");
-  const [tempTimerTitle, setTempTimerTitle] = useState("💞 Feliz ao seu lado desde");
+  const [tempTimerTitle, setTempTimerTitle] = useState("💞 Feliz ao seu lado há");
   const [tempPlaylistTitle, setTempPlaylistTitle] = useState("🎶 Nossa música preferida");
 
   const [tempDescription, setTempDescription] = useState(
@@ -99,13 +99,13 @@ export default function HomePage() {
           <>
             <button
               onClick={handleSave}
-              className="bg-green-500 hover:bg-green-600 text-white px-5 py-2 rounded-full font-semibold transition shadow-lg"
+              className="bg-pink-100/60 hover:bg-pink-50 text-pink-400 px-5 py-2 rounded-full font-semibold transition shadow-lg"
             >
               Salvar
             </button>
             <button
               onClick={handleCancel}
-              className="bg-red-500 hover:bg-red-600 text-white px-5 py-2 rounded-full font-semibold transition shadow-lg"
+              className="bg-pink-100/60 hover:bg-pink-50 text-pink-400 px-5 py-2 rounded-full font-semibold transition shadow-lg"
             >
               Cancelar
             </button>
@@ -113,9 +113,9 @@ export default function HomePage() {
         ) : (
           <button
             onClick={() => setIsEditing(true)}
-            className="bg-white text-pink-400 px-6 py-2 rounded-full font-semibold shadow-md hover:bg-pink-50 transition"
+            className="bg-pink-100/60 text-pink-400 px-6 py-2 rounded-full font-semibold shadow-md hover:bg-pink-50 transition"
           >
-            Editar Página
+            Editar
           </button>
         )}
       </div>

@@ -105,7 +105,7 @@ export default function TimelinePage() {
   };
 
   return (
-    <div className="min-h-screen bg-linear-to-b from-pink-100 to-pink-300 p-6">
+    <div className="min-h-screen bg-linear-to-br from-pink-300 to-purple-300 p-6">
       <div className="max-w-2xl mx-auto">
 
         {/* Filtros */}
@@ -123,7 +123,7 @@ export default function TimelinePage() {
             setShowForm(!showForm);
             setEditingPost(null);
           }}
-          className="w-full mb-6 bg-pink-500 hover:bg-pink-600 text-white font-semibold py-2 rounded-lg shadow-md transition"
+          className="w-full mb-6 bg-pink-400 hover:bg-pink-500 text-white font-semibold py-2 rounded-full shadow-md transition"
         >
           {showForm ? "Cancelar" : "Nova Publicação"}
         </button>

@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
-import Navbar from "./Components/Navbar";
+import ConditionalNavbar from "./Components/ConditionalNavbar";
 import { EditProvider } from "./context/EditContext";
 
 const geistSans = Geist({ variable: "--font-geist-sans", subsets: ["latin"] });
@@ -19,7 +19,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         className={`${geistSans.variable} ${geistMono.variable} antialiased min-h-screen bg-linear-to-b from-pink-100 to-purple-200`}
       >
         <EditProvider>
-          <Navbar />
+          <ConditionalNavbar />
           <main>{children}</main>
         </EditProvider>
       </body>
