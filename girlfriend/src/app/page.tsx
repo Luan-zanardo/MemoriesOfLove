@@ -5,19 +5,26 @@ import HeroSection from "./Components/HeroSection";
 import DescriptionSection from "./Components/DescriptionSection";
 import ImageSlider from "./Components/ImageSlider";
 import PlaylistSection from "./Components/PlaylistSection";
+import FallingHearts from "./Components/FallingHearts";
+import RelationshipTimer from "./Components/RelationshipTimer";
 
 export default function HomePage() {
   const [isEditing, setIsEditing] = useState(false);
 
   // Estados temporários para edição
-  const [tempName1, setTempName1] = useState("Luan");
-  const [tempName2, setTempName2] = useState("Anna");
-  const [tempStartDate, setTempStartDate] = useState(new Date("2025-08-11"));
-  const [tempTitle, setTempTitle] = useState("Nossa história de amor 💖");
+  const [tempName1, setTempName1] = useState("Seu Nome");
+  const [tempName2, setTempName2] = useState("Nome Dela");
+  const [tempStartDate, setTempStartDate] = useState(new Date("2025-08-10"));
+
+  // Títulos separados para cada componente
+  const [tempStoryTitle, setTempStoryTitle] = useState("💖 Nossa história de amor");
+  const [tempTimerTitle, setTempTimerTitle] = useState("💞 Feliz ao seu lado desde");
+  const [tempPlaylistTitle, setTempPlaylistTitle] = useState("🎶 Nossa música preferida");
+
   const [tempDescription, setTempDescription] = useState(
-    "Lorem ipsum dolor sit amet, consectetur adipiscing elit."
+    "Cada momento ao seu lado é único e especial. Você transforma meus dias com seu sorriso, aquece meu coração com seu carinho e me inspira a ser uma pessoa melhor. Juntos, construímos memórias que guardarei para sempre, e cada instante com você é um capítulo inesquecível da nossa linda história. Te amo mais do que palavras podem expressar."
   );
-  const [tempImages, setTempImages] = useState<string[]>(["/img1.jpg", "/img2.jpg"]);
+  const [tempImages, setTempImages] = useState<string[]>(["/noimage.png", "/noimage.png", "/noimage.png"]);
   const [tempPlaylistUrl, setTempPlaylistUrl] = useState(
     "https://open.spotify.com/embed/track/6Pa6VpdGS8OfiVOEnNAHHw?utm_source=generator"
   );
@@ -26,7 +33,11 @@ export default function HomePage() {
   const [name1, setName1] = useState(tempName1);
   const [name2, setName2] = useState(tempName2);
   const [startDate, setStartDate] = useState(tempStartDate);
-  const [title, setTitle] = useState(tempTitle);
+
+  const [storyTitle, setStoryTitle] = useState(tempStoryTitle);
+  const [timerTitle, setTimerTitle] = useState(tempTimerTitle);
+  const [playlistTitle, setPlaylistTitle] = useState(tempPlaylistTitle);
+
   const [description, setDescription] = useState(tempDescription);
   const [images, setImages] = useState(tempImages);
   const [playlistUrl, setPlaylistUrl] = useState(tempPlaylistUrl);
@@ -44,10 +55,15 @@ export default function HomePage() {
     setName1(tempName1);
     setName2(tempName2);
     setStartDate(tempStartDate);
-    setTitle(tempTitle);
+
+    setStoryTitle(tempStoryTitle);
+    setTimerTitle(tempTimerTitle);
+    setPlaylistTitle(tempPlaylistTitle);
+
     setDescription(tempDescription);
     setImages(tempImages);
     setPlaylistUrl(tempPlaylistUrl);
+
     setIsEditing(false);
   };
 
@@ -55,15 +71,22 @@ export default function HomePage() {
     setTempName1(name1);
     setTempName2(name2);
     setTempStartDate(startDate);
-    setTempTitle(title);
+
+    setTempStoryTitle(storyTitle);
+    setTempTimerTitle(timerTitle);
+    setTempPlaylistTitle(playlistTitle);
+
     setTempDescription(description);
     setTempImages(images);
     setTempPlaylistUrl(playlistUrl);
+
     setIsEditing(false);
   };
 
   return (
-    <div className="min-h-screen w-full bg-linear-to-br from-pink-300 to-purple-300 text-gray-900 relative pb-24">
+    <div className="min-h-screen w-full bg-linear-to-br from-pink-300 to-purple-300 text-gray-900 relative pb-24 overflow-hidden">
+      <FallingHearts />
+
       {/* Botões de edição / salvar */}
       <div
         className={`flex gap-3 p-4 transition-all duration-300 ${
@@ -97,8 +120,7 @@ export default function HomePage() {
         )}
       </div>
 
-      {/* Conteúdo */}
-      <div className="flex flex-col gap-8 mx-auto max-w-5xl px-4 pt-8">
+      <div className="flex flex-col gap-8 mx-auto max-w-5xl px-4 pt-8 relative z-10">
         <HeroSection
           isEditing={isEditing}
           name1={tempName1}
@@ -110,10 +132,18 @@ export default function HomePage() {
           daysTogether={daysTogether}
         />
 
+        <RelationshipTimer
+          startDate={tempStartDate}
+          setStartDate={setTempStartDate}
+          isEditing={isEditing}
+          title={tempTimerTitle}
+          setTitle={setTempTimerTitle}
+        />
+
         <DescriptionSection
           isEditing={isEditing}
-          title={tempTitle}
-          setTitle={setTempTitle}
+          title={tempStoryTitle}
+          setTitle={setTempStoryTitle}
           description={tempDescription}
           setDescription={setTempDescription}
         />
@@ -128,6 +158,8 @@ export default function HomePage() {
           playlistUrl={playlistUrl}
           setPlaylistUrl={isEditing ? setTempPlaylistUrl : setPlaylistUrl}
           isEditing={isEditing}
+          title={tempPlaylistTitle}
+          setTitle={setTempPlaylistTitle}
         />
       </div>
     </div>

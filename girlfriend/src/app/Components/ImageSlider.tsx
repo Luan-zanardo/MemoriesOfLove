@@ -16,109 +16,172 @@ export default function ImageSlider({
 }: ImageSliderProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
 
+  const handleUpload = (e: React.ChangeEvent<HTMLInputElement>, index: number) => {
+    if (!e.target.files) return;
+    const file = e.target.files[0];
+    const url = URL.createObjectURL(file);
+    const newImages = [...images];
+    newImages[index] = url;
+    setImages(newImages);
+  };
+
+  const handleRemove = (index: number) => {
+    const newImages = [...images];
+    newImages[index] = "";
+    setImages(newImages);
+  };
+
   const prevImage = () => {
-    setCurrentIndex((prev) => (prev - 1 + images.length) % images.length);
+    setCurrentIndex((prev) => (prev === 0 ? images.length - 1 : prev - 1));
   };
 
   const nextImage = () => {
-    setCurrentIndex((prev) => (prev + 1) % images.length);
+    setCurrentIndex((prev) => (prev === images.length - 1 ? 0 : prev + 1));
   };
 
-  const handleUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (!e.target.files) return;
-    const files = Array.from(e.target.files);
-    const urls = files.map((file) => URL.createObjectURL(file));
-    setImages([...images, ...urls]);
-  };
-
-  const removeImage = (index: number) => {
-    const newImages = images.filter((_, i) => i !== index);
-    setImages(newImages);
-    if (currentIndex >= newImages.length) setCurrentIndex(0);
-  };
-
-  // Garante pelo menos 3 imagens visíveis usando a imagem branca como fallback
-  const paddedImages =
-    images.length >= 3
-      ? images
-      : [...images, ...Array(3 - images.length).fill("/imgwhite.png")];
-
-  const visibleImages = [
-    paddedImages[(currentIndex - 1 + paddedImages.length) % paddedImages.length],
-    paddedImages[currentIndex % paddedImages.length],
-    paddedImages[(currentIndex + 1) % paddedImages.length],
-  ];
-
-  const showNavButtons = images.length >= 3;
+  const filledImages = [...images];
+  while (filledImages.length < 3) filledImages.push("");
 
   return (
-    <section className="relative py-12 w-full flex flex-col items-center bg-pink-100/60 rounded-2xl shadow-lg overflow-hidden">
-      <div className="relative w-full max-w-5xl flex items-center justify-center gap-4 px-6 md:px-12">
-        {/* Botão esquerdo */}
-        {showNavButtons && (
+    <section className="py-5 w-full flex justify-center bg-pink-100/60 rounded-2xl shadow-lg overflow-hidden">
+      {/* Mobile */}
+      {isEditing ? (
+        <div className="flex gap-2 w-full px-4 justify-center flex-wrap md:hidden">
+          {filledImages.map((img, idx) => (
+            <div
+              key={idx}
+              className="relative flex-none w-28 aspect-square rounded-2xl overflow-hidden border-2 border-pink-300/50 shadow-md bg-white"
+            >
+              {img ? (
+                <>
+                  <Image
+                    src={img}
+                    alt={`Imagem ${idx + 1}`}
+                    fill
+                    className="object-cover transition-opacity duration-500 ease-in-out"
+                  />
+                  <div className="absolute top-2 right-2 flex gap-2">
+                    <label className="w-6 h-6 bg-white rounded-full flex items-center justify-center shadow-md hover:bg-white/90 cursor-pointer">
+                      <Image src="/edit.png" alt="Editar" width={14} height={14} />
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={(e) => handleUpload(e, idx)}
+                      />
+                    </label>
+                    <button
+                      onClick={() => handleRemove(idx)}
+                      className="w-6 h-6 bg-red-500 rounded-full flex items-center justify-center text-white shadow-md hover:bg-red-600"
+                    >
+                      ×
+                    </button>
+                  </div>
+                </>
+              ) : (
+                <label className="absolute inset-0 flex flex-col items-center justify-center bg-pink-100 cursor-pointer hover:bg-pink-200 transition rounded-xl">
+                  <Image src="/edit.png" alt="Adicionar" width={28} height={28} className="mb-2" />
+                  <span className="text-pink-700 text-sm font-semibold">
+                    Adicionar imagem
+                  </span>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={(e) => handleUpload(e, idx)}
+                  />
+                </label>
+              )}
+            </div>
+          ))}
+        </div>
+      ) : (
+        // Mobile visualização: apenas uma imagem com transição suave
+        <div className="relative w-full px-4 sm:max-w-sm md:hidden flex items-center justify-center">
+          <div className="w-full aspect-square relative rounded-2xl overflow-hidden">
+            {filledImages.map((img, idx) => (
+              <Image
+                key={idx}
+                src={img || "/placeholder.png"} // opcional placeholder
+                alt={`Imagem ${idx + 1}`}
+                fill
+                className={`object-cover transition-opacity duration-500 ease-in-out absolute top-0 left-0 w-full h-full ${
+                  idx === currentIndex ? "opacity-100" : "opacity-0"
+                }`}
+              />
+            ))}
+          </div>
           <button
             onClick={prevImage}
-            className="bg-white/80 text-pink-600 rounded-full p-3 hover:bg-white shadow-md z-10 flex items-center justify-center"
+            className="absolute left-2 top-1/2 transform -translate-y-1/2 bg-white/80 p-2 rounded-full shadow-md hover:bg-white"
           >
-            ‹
+            ◀
           </button>
-        )}
-
-        {/* Imagens visíveis */}
-        <div className="flex gap-4 flex-1 justify-center min-w-0">
-          {visibleImages.map((img, idx) => {
-            const globalIndex =
-              (currentIndex - 1 + idx + paddedImages.length) % paddedImages.length;
-            return (
-              <div
-                key={idx}
-                className="relative flex-1 aspect-square rounded-2xl shadow-lg overflow-hidden border-7 border-pink-300"
-              >
-                <Image
-                  src={img}
-                  alt={`Memória ${idx}`}
-                  fill
-                  className="object-cover shadow-md"
-                />
-                {isEditing && globalIndex < images.length && (
-                  <button
-                    onClick={() => removeImage(globalIndex)}
-                    className="absolute top-2 right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center hover:bg-red-600 shadow-md"
-                  >
-                    ×
-                  </button>
-                )}
-              </div>
-            );
-          })}
-        </div>
-
-        {/* Botão direito */}
-        {showNavButtons && (
           <button
             onClick={nextImage}
-            className="bg-white/80 text-pink-600 rounded-full p-3 hover:bg-white shadow-md z-10 flex items-center justify-center"
+            className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-white/80 p-2 rounded-full shadow-md hover:bg-white"
           >
-            ›
+            ▶
           </button>
-        )}
-      </div>
-
-      {/* Upload no modo edição */}
-      {isEditing && (
-        <div className="mt-6">
-          <label className="cursor-pointer bg-white text-pink-600 px-4 py-2 rounded-md font-semibold hover:bg-pink-50 transition text-sm md:text-base">
-            + Adicionar Fotos
-            <input
-              type="file"
-              multiple
-              accept="image/*"
-              onChange={handleUpload}
-              className="hidden"
-            />
-          </label>
         </div>
       )}
+
+      {/* Desktop: todas as imagens lado a lado com transição */}
+      <div className="hidden md:flex gap-4 w-full max-w-5xl px-4 justify-center">
+        {filledImages.map((img, idx) => (
+          <div
+            key={idx}
+            className="relative flex-1 rounded-2xl overflow-hidden border-2 border-pink-300/50 shadow-md bg-white"
+          >
+            <div className="w-full aspect-square relative">
+              {img ? (
+                <>
+                  <Image
+                    src={img}
+                    alt={`Imagem ${idx + 1}`}
+                    fill
+                    className="object-cover transition-opacity duration-500 ease-in-out"
+                  />
+                  {isEditing && (
+                    <div className="absolute top-2 right-2 flex gap-2">
+                      <label className="w-8 h-8 bg-white rounded-full flex items-center justify-center shadow-md hover:bg-white/90 cursor-pointer">
+                        <Image src="/edit.png" alt="Editar" width={16} height={16} />
+                        <input
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          onChange={(e) => handleUpload(e, idx)}
+                        />
+                      </label>
+                      <button
+                        onClick={() => handleRemove(idx)}
+                        className="w-8 h-8 bg-red-500 rounded-full flex items-center justify-center text-white shadow-md hover:bg-red-600"
+                      >
+                        ×
+                      </button>
+                    </div>
+                  )}
+                </>
+              ) : (
+                isEditing && (
+                  <label className="absolute inset-0 flex flex-col items-center justify-center bg-pink-100 cursor-pointer hover:bg-pink-200 transition rounded-xl">
+                    <Image src="/edit.png" alt="Adicionar" width={28} height={28} className="mb-2" />
+                    <span className="text-pink-700 text-sm font-semibold">
+                      Adicionar imagem
+                    </span>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={(e) => handleUpload(e, idx)}
+                    />
+                  </label>
+                )
+              )}
+            </div>
+          </div>
+        ))}
+      </div>
     </section>
   );
 }
