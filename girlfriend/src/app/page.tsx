@@ -25,9 +25,6 @@ export default function HomePage() {
     "Cada momento ao seu lado é único e especial. Você transforma meus dias com seu sorriso, aquece meu coração com seu carinho e me inspira a ser uma pessoa melhor. Juntos, construímos memórias que guardarei para sempre, e cada instante com você é um capítulo inesquecível da nossa linda história. Te amo mais do que palavras podem expressar."
   );
   const [tempImages, setTempImages] = useState<string[]>(["/noimage.png", "/noimage.png", "/noimage.png"]);
-  const [tempPlaylistUrl, setTempPlaylistUrl] = useState(
-    "https://open.spotify.com/embed/track/6Pa6VpdGS8OfiVOEnNAHHw?utm_source=generator"
-  );
 
   // Estados permanentes
   const [name1, setName1] = useState(tempName1);
@@ -40,7 +37,6 @@ export default function HomePage() {
 
   const [description, setDescription] = useState(tempDescription);
   const [images, setImages] = useState(tempImages);
-  const [playlistUrl, setPlaylistUrl] = useState(tempPlaylistUrl);
 
   const [daysTogether, setDaysTogether] = useState(0);
 
@@ -62,7 +58,6 @@ export default function HomePage() {
 
     setDescription(tempDescription);
     setImages(tempImages);
-    setPlaylistUrl(tempPlaylistUrl);
 
     setIsEditing(false);
   };
@@ -78,7 +73,6 @@ export default function HomePage() {
 
     setTempDescription(description);
     setTempImages(images);
-    setTempPlaylistUrl(playlistUrl);
 
     setIsEditing(false);
   };
@@ -155,11 +149,9 @@ export default function HomePage() {
         />
 
         <PlaylistSection
-          playlistUrl={playlistUrl}
-          setPlaylistUrl={isEditing ? setTempPlaylistUrl : setPlaylistUrl}
-          isEditing={isEditing}
           title={tempPlaylistTitle}
           setTitle={setTempPlaylistTitle}
+          isEditing={isEditing}
         />
       </div>
     </div>

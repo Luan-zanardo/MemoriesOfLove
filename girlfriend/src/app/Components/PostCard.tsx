@@ -98,7 +98,7 @@ export default function PostCard({
           {index > 0 && (
             <button
               onClick={() => handlePrevImage(post.id)}
-              className="absolute left-3 top-1/2 transform -translate-y-1/2 bg-white/80 p-2 rounded-full shadow-md hover:bg-white transition"
+              className="absolute left-3 top-1/2 transform -translate-y-1/2 bg-pink-400 p-2 rounded-full shadow-md hover:bg-pink-300 transition"
             >
               ◀
             </button>
@@ -106,7 +106,7 @@ export default function PostCard({
           {index < (post.images?.length ?? 0) - 1 && (
             <button
               onClick={() => handleNextImage(post.id)}
-              className="absolute right-3 top-1/2 transform -translate-y-1/2 bg-white/80 p-2 rounded-full shadow-md hover:bg-white transition"
+              className="absolute right-3 top-1/2 transform -translate-y-1/2 bg-pink-400 p-2 rounded-full shadow-md hover:bg-pink-300 transition"
             >
               ▶
             </button>
