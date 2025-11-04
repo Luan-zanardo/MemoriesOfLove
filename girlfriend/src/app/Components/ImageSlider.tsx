@@ -156,15 +156,26 @@ export default function ImageSlider({
           </div>
           <button
             onClick={prevImage}
-            className="absolute left-2 top-1/2 transform -translate-y-1/2 bg-white/80 p-2 rounded-full shadow-md hover:bg-white"
+            className="absolute left-2 top-1/2 transform -translate-y-1/2"
           >
-            ◀
+            <Image
+              src="/leftFlex.png"
+              alt="Imagem anterior"
+              width={30}
+              height={30}
+            />
           </button>
+
           <button
             onClick={nextImage}
-            className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-white/80 p-2 rounded-full shadow-md hover:bg-white"
+            className="absolute right-2 top-1/2 transform -translate-y-1/2"
           >
-            ▶
+            <Image
+              src="/rightFlex.png"
+              alt="Próxima imagem"
+              width={30}
+              height={30}
+            />
           </button>
         </div>
       )}
