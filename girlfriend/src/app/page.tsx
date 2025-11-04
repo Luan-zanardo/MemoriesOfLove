@@ -1,158 +1,123 @@
 "use client";
+import { useState } from "react";
+import Link from "next/link";
+import Image from "next/image";
+import { useRouter } from "next/navigation";
+import { supabase } from "@/lib/supabaseClient";
 
-import { useState, useEffect } from "react";
-import HeroSection from "./Components/HeroSection";
-import DescriptionSection from "./Components/DescriptionSection";
-import ImageSlider from "./Components/ImageSlider";
-import PlaylistSection from "./Components/PlaylistSection";
-import FallingHearts from "./Components/FallingHearts";
-import RelationshipTimer from "./Components/RelationshipTimer";
+export default function LoginPage() {
+  const router = useRouter();
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [error, setError] = useState("");
 
-export default function HomePage() {
-  const [isEditing, setIsEditing] = useState(false);
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError("");
 
-  // Estados temporários para edição
-  const [tempName1, setTempName1] = useState("Seu Nome");
-  const [tempName2, setTempName2] = useState("Nome Dela");
-  const [tempStartDate, setTempStartDate] = useState(new Date("2025-08-10"));
+    if (!email || !password) {
+      setError("Por favor, preencha todos os campos.");
+      return;
+    }
 
-  // Títulos separados para cada componente
-  const [tempStoryTitle, setTempStoryTitle] = useState("💖 Nossa história de amor");
-  const [tempTimerTitle, setTempTimerTitle] = useState("💞 Feliz ao seu lado há");
-  const [tempPlaylistTitle, setTempPlaylistTitle] = useState("🎶 Nossa música preferida");
+    try {
+      // 1️⃣ Loga via Supabase Auth
+      const { data: authData, error: signInError } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
 
-  const [tempDescription, setTempDescription] = useState(
-    "Cada momento ao seu lado é único e especial. Você transforma meus dias com seu sorriso, aquece meu coração com seu carinho e me inspira a ser uma pessoa melhor. Juntos, construímos memórias que guardarei para sempre, e cada instante com você é um capítulo inesquecível da nossa linda história. Te amo mais do que palavras podem expressar."
-  );
-  const [tempImages, setTempImages] = useState<string[]>(["/noimage.png", "/noimage.png", "/noimage.png"]);
+      if (signInError) {
+        setError(signInError.message);
+        return;
+      }
 
-  // Estados permanentes
-  const [name1, setName1] = useState(tempName1);
-  const [name2, setName2] = useState(tempName2);
-  const [startDate, setStartDate] = useState(tempStartDate);
+      const userId = authData.user?.id;
+      if (!userId) {
+        setError("Erro ao logar. Tente novamente.");
+        return;
+      }
 
-  const [storyTitle, setStoryTitle] = useState(tempStoryTitle);
-  const [timerTitle, setTimerTitle] = useState(tempTimerTitle);
-  const [playlistTitle, setPlaylistTitle] = useState(tempPlaylistTitle);
+      // 2️⃣ Busca o name do usuário na tabela users
+      const { data: user, error: userError } = await supabase
+        .from("users")
+        .select("name")
+        .eq("id", userId)
+        .single();
 
-  const [description, setDescription] = useState(tempDescription);
-  const [images, setImages] = useState(tempImages);
+      if (userError || !user) {
+        setError("Usuário não encontrado.");
+        return;
+      }
 
-  const [daysTogether, setDaysTogether] = useState(0);
-
-  useEffect(() => {
-    const diff = Math.floor(
-      (new Date().getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)
-    );
-    setDaysTogether(diff);
-  }, [startDate]);
-
-  const handleSave = () => {
-    setName1(tempName1);
-    setName2(tempName2);
-    setStartDate(tempStartDate);
-
-    setStoryTitle(tempStoryTitle);
-    setTimerTitle(tempTimerTitle);
-    setPlaylistTitle(tempPlaylistTitle);
-
-    setDescription(tempDescription);
-    setImages(tempImages);
-
-    setIsEditing(false);
-  };
-
-  const handleCancel = () => {
-    setTempName1(name1);
-    setTempName2(name2);
-    setTempStartDate(startDate);
-
-    setTempStoryTitle(storyTitle);
-    setTempTimerTitle(timerTitle);
-    setTempPlaylistTitle(playlistTitle);
-
-    setTempDescription(description);
-    setTempImages(images);
-
-    setIsEditing(false);
+      // 3️⃣ Salva sessionStorage (opcional) e redireciona
+      sessionStorage.setItem("user", JSON.stringify(user));
+      router.push(`/home/${user.name}`);
+    } catch (err) {
+      console.error("Erro inesperado:", err);
+      setError("Erro interno. Tente novamente mais tarde.");
+    }
   };
 
   return (
-    <div className="min-h-screen w-full bg-linear-to-br from-pink-300 to-purple-300 text-gray-900 relative pb-24 overflow-hidden">
-      <FallingHearts />
-
-      {/* Botões de edição / salvar */}
-      <div
-        className={`flex gap-3 p-4 transition-all duration-300 ${
-          isEditing
-            ? "fixed bottom-4 right-4 z-50"
-            : "absolute bottom-4 left-1/2 -translate-x-1/2"
-        }`}
-      >
-        {isEditing ? (
-          <>
-            <button
-              onClick={handleSave}
-              className="bg-pink-100/60 hover:bg-pink-50 text-pink-400 px-5 py-2 rounded-full font-semibold transition shadow-lg"
-            >
-              Salvar
-            </button>
-            <button
-              onClick={handleCancel}
-              className="bg-pink-100/60 hover:bg-pink-50 text-pink-400 px-5 py-2 rounded-full font-semibold transition shadow-lg"
-            >
-              Cancelar
-            </button>
-          </>
-        ) : (
-          <button
-            onClick={() => setIsEditing(true)}
-            className="bg-pink-100/60 text-pink-400 px-6 py-2 rounded-full font-semibold shadow-md hover:bg-pink-50 transition"
-          >
-            Editar
-          </button>
-        )}
+    <div className="min-h-screen flex flex-col justify-center items-center bg-linear-to-br from-pink-300 to-purple-300 text-gray-800 relative overflow-hidden">
+      <div className="absolute inset-0 opacity-20 pointer-events-none">
+        <div className="absolute top-10 left-20 w-48 h-48 bg-pink-200 rounded-full blur-3xl animate-pulse"></div>
+        <div className="absolute bottom-10 right-20 w-64 h-64 bg-purple-200 rounded-full blur-3xl animate-pulse"></div>
       </div>
 
-      <div className="flex flex-col gap-8 mx-auto max-w-5xl px-4 pt-8 relative z-10">
-        <HeroSection
-          isEditing={isEditing}
-          name1={tempName1}
-          setName1={setTempName1}
-          name2={tempName2}
-          setName2={setTempName2}
-          startDate={tempStartDate}
-          setStartDate={setTempStartDate}
-          daysTogether={daysTogether}
-        />
+      <div className="bg-white/30 backdrop-blur-lg p-8 rounded-2xl shadow-lg w-[90%] max-w-md z-10 text-center">
+        <h1 className="text-3xl font-bold text-white mb-2 drop-shadow-lg">💖 Bem-vindo de volta</h1>
+        <p className="text-white/90 mb-6">Faça login para acessar sua história de amor</p>
 
-        <RelationshipTimer
-          startDate={tempStartDate}
-          setStartDate={setTempStartDate}
-          isEditing={isEditing}
-          title={tempTimerTitle}
-          setTitle={setTempTimerTitle}
-        />
+        <form onSubmit={handleLogin} className="flex flex-col gap-4">
+          <input
+            type="email"
+            placeholder="E-mail"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            className="w-full px-4 py-2 rounded-full border-none focus:ring-2 focus:ring-pink-400 outline-none bg-white/70 placeholder-gray-500"
+          />
 
-        <DescriptionSection
-          isEditing={isEditing}
-          title={tempStoryTitle}
-          setTitle={setTempStoryTitle}
-          description={tempDescription}
-          setDescription={setTempDescription}
-        />
+          <div className="relative">
+            <input
+              type={showPassword ? "text" : "password"}
+              placeholder="Senha"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="w-full px-4 py-2 pr-12 rounded-full border-none focus:ring-2 focus:ring-pink-400 outline-none bg-white/70 placeholder-gray-500"
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              className="absolute right-4 top-1/2 transform -translate-y-1/2 opacity-75 hover:opacity-100 transition"
+            >
+              <Image
+                src={showPassword ? "/visivel.png" : "/oculto.png"}
+                alt={showPassword ? "Ocultar senha" : "Mostrar senha"}
+                width={22}
+                height={22}
+              />
+            </button>
+          </div>
 
-        <ImageSlider
-          isEditing={isEditing}
-          images={tempImages}
-          setImages={setTempImages}
-        />
+          {error && <p className="text-red-600 text-sm font-semibold">{error}</p>}
 
-        <PlaylistSection
-          title={tempPlaylistTitle}
-          setTitle={setTempPlaylistTitle}
-          isEditing={isEditing}
-        />
+          <button
+            type="submit"
+            className="bg-pink-400 hover:bg-pink-300 text-white font-semibold py-2 rounded-full transition-all shadow-md"
+          >
+            Entrar
+          </button>
+        </form>
+
+        <p className="text-sm text-white/90 mt-4">
+          Ainda não tem uma conta?{" "}
+          <Link href="/register" className="text-pink-100 underline hover:text-white transition">
+            Criar conta
+          </Link>
+        </p>
       </div>
     </div>
   );

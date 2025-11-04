@@ -1,8 +1,10 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
-  reactCompiler: true,
+  reactCompiler: true, // mantém caso use recursos que dependam dele
+  images: {
+    domains: ["vjluawdltsfpktyvzhmc.supabase.co"], // seu domínio do Supabase
+  },
 };
 
 export default nextConfig;

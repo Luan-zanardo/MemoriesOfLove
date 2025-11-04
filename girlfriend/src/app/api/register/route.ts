@@ -1,29 +1,54 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { supabase } from "@/lib/supabaseClient";
 
-export async function POST(req: NextRequest) {
-  const { email, password } = await req.json();
+export async function POST(req: Request) {
+  try {
+    const { name, email, password } = await req.json();
 
-  if (!email || !password)
-    return NextResponse.json({ error: "Email e senha obrigatórios" }, { status: 400 });
+    if (!name || !email || !password) {
+      return NextResponse.json({ error: "Preencha todos os campos." }, { status: 400 });
+    }
 
-  // Verifica se usuário já existe
-  const { data: existing } = await supabase
-    .from("users")
-    .select("*")
-    .eq("email", email)
-    .single();
+    // Verifica se já existe usuário com o mesmo e-mail ou nome
+    const { data: existingUser } = await supabase
+      .from("users")
+      .select("id")
+      .or(`email.eq.${email},name.eq.${name}`)
+      .single();
 
-  if (existing) return NextResponse.json({ error: "Email já cadastrado" }, { status: 400 });
+    if (existingUser) {
+      return NextResponse.json({ error: "E-mail ou nome já cadastrado." }, { status: 400 });
+    }
 
-  // Cria usuário
-  const { data: user, error } = await supabase
-    .from("users")
-    .insert([{ email, password }])
-    .select()
-    .single();
+    // Cria usuário (senha em texto simples, pode adicionar hash depois)
+    const { data: newUser, error: userError } = await supabase
+      .from("users")
+      .insert([{ name, email, password }])
+      .select()
+      .single();
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+    if (userError || !newUser) {
+      console.error("Erro ao criar usuário:", userError);
+      return NextResponse.json({ error: "Erro ao criar usuário." }, { status: 500 });
+    }
 
-  return NextResponse.json({ message: "Usuário registrado com sucesso", user });
+    // 🔹 Cria automaticamente a home do usuário
+    const { error: homeError } = await supabase
+      .from("user_home")
+      .insert([{ user_id: newUser.id }]);
+
+    if (homeError) {
+      console.error("Erro ao criar home padrão:", homeError);
+      return NextResponse.json({
+        error: "Usuário criado, mas erro ao criar página home.",
+      }, { status: 500 });
+    }
+
+    // Remove senha antes de retornar
+    const { password: _, ...safeUser } = newUser;
+    return NextResponse.json({ user: safeUser });
+  } catch (err) {
+    console.error("Erro no registro:", err);
+    return NextResponse.json({ error: "Erro interno do servidor." }, { status: 500 });
+  }
 }

@@ -18,7 +18,7 @@ export default function SettingsPage() {
   const handleLogout = () => {
     // Exemplo: limpar dados locais
     // localStorage.removeItem("authToken");
-    router.push("/login");
+    router.push("/");
   };
 
   return (

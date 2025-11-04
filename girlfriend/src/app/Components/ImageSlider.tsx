@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import { useState } from "react";
+import { supabase } from "@/lib/supabaseClient"; // ✅ usa o client centralizado
 
 type ImageSliderProps = {
   isEditing: boolean;
@@ -15,14 +16,51 @@ export default function ImageSlider({
   setImages,
 }: ImageSliderProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [isUploading, setIsUploading] = useState(false);
 
-  const handleUpload = (e: React.ChangeEvent<HTMLInputElement>, index: number) => {
-    if (!e.target.files) return;
-    const file = e.target.files[0];
-    const url = URL.createObjectURL(file);
-    const newImages = [...images];
-    newImages[index] = url;
-    setImages(newImages);
+  // 🔼 Upload real para Supabase
+  const handleUpload = async (
+    e: React.ChangeEvent<HTMLInputElement>,
+    index: number
+  ) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    try {
+      setIsUploading(true);
+
+      const timestamp = Date.now();
+      const sanitizedFileName = file.name
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/[^a-zA-Z0-9._-]/g, "_");
+
+      const filePath = `${timestamp}_${sanitizedFileName}`;
+
+      const { data, error } = await supabase.storage
+        .from("user-images")
+        .upload(filePath, file);
+
+      if (error) {
+        console.error("Erro no upload:", error.message);
+        return;
+      }
+
+      const { data: publicData } = supabase.storage
+        .from("user-images")
+        .getPublicUrl(filePath);
+
+      const publicUrl = publicData?.publicUrl;
+      if (!publicUrl) throw new Error("Não foi possível obter a URL pública.");
+
+      const newImages = [...images];
+      newImages[index] = publicUrl;
+      setImages(newImages);
+    } catch (err) {
+      console.error("Erro ao enviar a imagem:", err);
+    } finally {
+      setIsUploading(false);
+    }
   };
 
   const handleRemove = (index: number) => {
@@ -44,7 +82,7 @@ export default function ImageSlider({
 
   return (
     <section className="py-5 w-full flex justify-center bg-pink-100/60 rounded-2xl shadow-lg overflow-hidden">
-      {/* Mobile */}
+      {/* MOBILE */}
       {isEditing ? (
         <div className="flex gap-2 w-full px-4 justify-center flex-wrap md:hidden">
           {filledImages.map((img, idx) => (
@@ -94,15 +132,20 @@ export default function ImageSlider({
               )}
             </div>
           ))}
+          {isUploading && (
+            <p className="text-pink-500 text-sm mt-2 w-full text-center">
+              Enviando imagem...
+            </p>
+          )}
         </div>
       ) : (
-        // Mobile visualização: apenas uma imagem com transição suave
+        // MOBILE — visualização com transição suave
         <div className="relative w-full px-4 sm:max-w-sm md:hidden flex items-center justify-center">
           <div className="w-full aspect-square relative rounded-2xl overflow-hidden">
             {filledImages.map((img, idx) => (
               <Image
                 key={idx}
-                src={img || "/placeholder.png"} // opcional placeholder
+                src={img || "/placeholder.png"}
                 alt={`Imagem ${idx + 1}`}
                 fill
                 className={`object-cover transition-opacity duration-500 ease-in-out absolute top-0 left-0 w-full h-full ${
@@ -126,7 +169,7 @@ export default function ImageSlider({
         </div>
       )}
 
-      {/* Desktop: todas as imagens lado a lado com transição */}
+      {/* DESKTOP */}
       <div className="hidden md:flex gap-4 w-full max-w-5xl px-4 justify-center">
         {filledImages.map((img, idx) => (
           <div

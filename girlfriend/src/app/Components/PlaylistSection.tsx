@@ -1,28 +1,38 @@
 "use client";
 
-import React, { useRef, useState, useEffect } from "react";
+import React, { useRef, useState } from "react";
 import { Play, Pause } from "lucide-react";
+import { createClient } from "@supabase/supabase-js";
 
 type PlaylistProps = {
   title: string;
   setTitle: (title: string) => void;
   isEditing: boolean;
+  audioUrl?: string;
+  setAudioUrl?: (url: string) => void;
 };
+
+// 🔹 Inicializa o Supabase client
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+);
 
 export default function PlaylistSection({
   title,
   setTitle,
   isEditing,
+  audioUrl,
+  setAudioUrl,
 }: PlaylistProps) {
-  const [audioFile, setAudioFile] = useState<File | null>(null);
-  const [audioUrl, setAudioUrl] = useState<string>("");
+  const [isUploading, setIsUploading] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
   const [progress, setProgress] = useState(0);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const audioRef = useRef<HTMLAudioElement>(null);
 
-  // Formata segundos → "mm:ss"
+  // 🔹 Formata o tempo em mm:ss
   const formatTime = (time: number) => {
     if (!time || isNaN(time)) return "0:00";
     const minutes = Math.floor(time / 60);
@@ -30,15 +40,6 @@ export default function PlaylistSection({
       .toString()
       .padStart(2, "0");
     return `${minutes}:${seconds}`;
-  };
-
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file && file.type.startsWith("audio/")) {
-      const url = URL.createObjectURL(file);
-      setAudioFile(file);
-      setAudioUrl(url);
-    }
   };
 
   const togglePlay = () => {
@@ -49,12 +50,11 @@ export default function PlaylistSection({
   };
 
   const handleTimeUpdate = () => {
-    if (audioRef.current) {
-      const { currentTime, duration } = audioRef.current;
-      setCurrentTime(currentTime);
-      setDuration(duration);
-      setProgress((currentTime / (duration || 1)) * 100);
-    }
+    if (!audioRef.current) return;
+    const { currentTime, duration } = audioRef.current;
+    setCurrentTime(currentTime);
+    setDuration(duration);
+    setProgress((currentTime / (duration || 1)) * 100);
   };
 
   const handleSeek = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -65,9 +65,59 @@ export default function PlaylistSection({
     }
   };
 
+  // 🔼 Upload de MP3 para o Supabase Storage
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    try {
+      setIsUploading(true);
+
+      const timestamp = Date.now();
+
+      // 🔹 Limpa nome do arquivo (sem espaços, acentos, etc)
+      const sanitizedFileName = file.name
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "") // remove acentos
+        .replace(/\s+/g, "_") // troca espaços por _
+        .replace(/[^a-zA-Z0-9._-]/g, ""); // remove símbolos inválidos
+
+      const filePath = `${timestamp}_${sanitizedFileName}`;
+
+      const { data, error } = await supabase.storage
+        .from("audios")
+        .upload(filePath, file, {
+          cacheControl: "3600",
+          upsert: false,
+        });
+
+      if (error) {
+        console.error("Erro no upload:", error.message);
+        alert("Erro ao enviar o áudio: " + error.message);
+        return;
+      }
+
+      const { data: urlData } = supabase.storage
+        .from("audios")
+        .getPublicUrl(filePath);
+
+      const publicUrl = urlData?.publicUrl;
+      if (!publicUrl) throw new Error("Não foi possível obter a URL pública.");
+
+      if (typeof setAudioUrl === "function") {
+        setAudioUrl(publicUrl);
+      }
+    } catch (err) {
+      console.error("Erro no upload:", err);
+      alert("Erro ao enviar o áudio.");
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
   return (
     <section className="w-full bg-pink-100/60 rounded-3xl shadow-lg text-center p-6 md:p-10 flex flex-col items-center transition-all duration-300">
-      {/* Título editável */}
+      {/* 🔹 Título editável */}
       {isEditing ? (
         <input
           className="text-xl md:text-2xl font-bold mb-5 w-full text-center border-b-2 border-pink-300 bg-transparent outline-none focus:border-pink-500 transition"
@@ -81,19 +131,25 @@ export default function PlaylistSection({
         </h3>
       )}
 
-      {/* Upload de arquivo */}
+      {/* 🔹 Upload */}
       {isEditing && (
-        <div className="mb-4 w-full flex justify-center">
+        <div className="mb-4 w-full flex justify-center flex-col items-center">
+          <label className="text-sm text-gray-600 mb-2">
+            Envie sua música (MP3)
+          </label>
           <input
             type="file"
             accept="audio/mp3,audio/mpeg,audio/wav"
             onChange={handleFileChange}
-            className="block w-full max-w-sm text-sm text-gray-700 border border-pink-300 rounded-lg cursor-pointer p-4 bg-pink-100 focus:outline-none focus:ring-2 focus:ring-pink-400 transition"
+            className="block w-full max-w-sm text-sm text-gray-700 border border-pink-300 rounded-lg cursor-pointer p-3 bg-pink-100 focus:outline-none focus:ring-2 focus:ring-pink-400 transition"
           />
+          {isUploading && (
+            <p className="text-pink-500 text-sm mt-2">🎧 Enviando música...</p>
+          )}
         </div>
       )}
 
-      {/* Player */}
+      {/* 🔹 Player */}
       {audioUrl ? (
         <div className="flex flex-col items-center w-full max-w-[calc(100%-2rem)] bg-pink-100 backdrop-blur-md rounded-2xl p-6 shadow-md hover:shadow-lg transition">
           <audio
@@ -103,7 +159,6 @@ export default function PlaylistSection({
             onEnded={() => setIsPlaying(false)}
           />
 
-          {/* Capa e botão Play/Pause */}
           <div className="relative w-24 h-24 md:w-28 md:h-28 mb-5">
             <div className="w-full h-full bg-linear-to-br from-pink-200 to-pink-300 rounded-full flex items-center justify-center shadow-inner shadow-pink-400/40">
               <button
@@ -115,7 +170,6 @@ export default function PlaylistSection({
             </div>
           </div>
 
-          {/* Barra de progresso */}
           <div className="relative w-full mb-3">
             <input
               type="range"
@@ -133,7 +187,6 @@ export default function PlaylistSection({
             />
           </div>
 
-          {/* Tempo atual / total */}
           <div className="text-sm text-pink-500">
             {formatTime(currentTime)} / {formatTime(duration)}
           </div>
