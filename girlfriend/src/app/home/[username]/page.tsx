@@ -22,6 +22,21 @@ export default function UserHomePage() {
   const [showQRCode, setShowQRCode] = useState(false);
   const qrRef = useRef<HTMLCanvasElement>(null);
 
+  // 🔊 Player global
+  const audioRef = useRef<HTMLAudioElement>(null);
+  const [isPlaying, setIsPlaying] = useState(false);
+
+  const togglePlay = () => {
+    if (!audioRef.current) return;
+    if (isPlaying) {
+      audioRef.current.pause();
+      setIsPlaying(false);
+    } else {
+      audioRef.current.play();
+      setIsPlaying(true);
+    }
+  };
+
   useEffect(() => {
     const getSession = async () => {
       const { data: { session } } = await supabase.auth.getSession();
@@ -75,7 +90,7 @@ export default function UserHomePage() {
 
   if (loading)
     return (
-      <div className="flex justify-center items-center min-h-screen text-white">
+      <div className="bg-linear-to-br from-pink-300 to-purple-300 flex justify-center items-center min-h-screen text-white">
         Carregando...
       </div>
     );
@@ -171,6 +186,8 @@ export default function UserHomePage() {
             (new Date().getTime() - new Date(userHome.start_date).getTime()) /
               (1000 * 60 * 60 * 24)
           )}
+          togglePlay={togglePlay}
+          isPlaying={isPlaying}
         />
         <RelationshipTimer
           startDate={new Date(userHome.start_date)}
@@ -197,6 +214,9 @@ export default function UserHomePage() {
           audioUrl={userHome.playlist_audio_url}
           setAudioUrl={(v: string) => setUserHome({ ...userHome, playlist_audio_url: v })}
           isEditing={isOwner && isEditing}
+          audioRef={audioRef}
+          isPlaying={isPlaying}
+          togglePlay={togglePlay}
         />
       </div>
     </div>

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useRef, useState } from "react";
+import React, { RefObject, useState } from "react";
 import { Play, Pause } from "lucide-react";
 import { createClient } from "@supabase/supabase-js";
 
@@ -10,6 +10,11 @@ type PlaylistProps = {
   isEditing: boolean;
   audioUrl?: string;
   setAudioUrl?: (url: string) => void;
+
+  // ✅ Novas props para sincronizar com o HeroSection
+  isPlaying: boolean;
+  togglePlay: () => void;
+  audioRef: RefObject<HTMLAudioElement | null>;
 };
 
 // 🔹 Inicializa o Supabase client
@@ -24,13 +29,14 @@ export default function PlaylistSection({
   isEditing,
   audioUrl,
   setAudioUrl,
+  isPlaying,
+  togglePlay,
+  audioRef,
 }: PlaylistProps) {
   const [isUploading, setIsUploading] = useState(false);
-  const [isPlaying, setIsPlaying] = useState(false);
   const [progress, setProgress] = useState(0);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
-  const audioRef = useRef<HTMLAudioElement>(null);
 
   // 🔹 Formata o tempo em mm:ss
   const formatTime = (time: number) => {
@@ -40,13 +46,6 @@ export default function PlaylistSection({
       .toString()
       .padStart(2, "0");
     return `${minutes}:${seconds}`;
-  };
-
-  const togglePlay = () => {
-    if (!audioRef.current) return;
-    if (isPlaying) audioRef.current.pause();
-    else audioRef.current.play();
-    setIsPlaying(!isPlaying);
   };
 
   const handleTimeUpdate = () => {
@@ -156,7 +155,7 @@ export default function PlaylistSection({
             ref={audioRef}
             src={audioUrl}
             onTimeUpdate={handleTimeUpdate}
-            onEnded={() => setIsPlaying(false)}
+            onEnded={() => setProgress(0)}
           />
 
           <div className="relative w-24 h-24 md:w-28 md:h-28 mb-5">
