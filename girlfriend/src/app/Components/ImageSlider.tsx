@@ -60,11 +60,55 @@ export default function ImageSlider({
     setImages(newImages);
   };
 
+  const handleEditImage = async (index: number) => {
+    // Reabre o input e substitui a imagem no mesmo índice
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = "image/*";
+    input.onchange = async (e: any) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+
+      try {
+        setIsUploading(true);
+        const timestamp = Date.now();
+        const sanitizedFileName = file.name
+          .normalize("NFD")
+          .replace(/[\u0300-\u036f]/g, "")
+          .replace(/[^a-zA-Z0-9._-]/g, "_");
+
+        const filePath = `${timestamp}_${sanitizedFileName}`;
+        const { error } = await supabase.storage
+          .from("user-images")
+          .upload(filePath, file);
+
+        if (error) {
+          console.error("Erro ao enviar nova imagem:", error.message);
+          return;
+        }
+
+        const { data: publicData } = supabase.storage
+          .from("user-images")
+          .getPublicUrl(filePath);
+
+        const newUrl = publicData?.publicUrl;
+        if (!newUrl) throw new Error("Não foi possível obter a URL pública.");
+
+        const updated = [...images];
+        updated[index] = newUrl;
+        setImages(updated);
+      } catch (err) {
+        console.error("Erro ao substituir imagem:", err);
+      } finally {
+        setIsUploading(false);
+      }
+    };
+    input.click();
+  };
+
   const prevImage = () => {
     if (images.length === 0) return;
-    setCurrentIndex((prev) =>
-      prev === 0 ? images.length - 1 : prev - 1
-    );
+    setCurrentIndex((prev) => (prev === 0 ? images.length - 1 : prev - 1));
   };
 
   const nextImage = () => {
@@ -74,7 +118,71 @@ export default function ImageSlider({
     );
   };
 
-  // Calcula imagens visíveis (respeitando o total de imagens)
+  // Se estiver editando, mostramos todas as imagens
+  if (isEditing) {
+    return (
+      <section className="py-5 w-full flex flex-col items-center bg-pink-100/60 rounded-2xl shadow-lg overflow-hidden">
+        <label className="mb-4 bg-pink-400 hover:bg-pink-300 text-white px-4 py-2 rounded-lg cursor-pointer shadow-md transition">
+          Adicionar nova imagem
+          <input
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={handleUpload}
+          />
+        </label>
+
+        {isUploading && (
+          <p className="text-pink-500 text-sm mt-2 text-center">
+            Enviando imagem...
+          </p>
+        )}
+
+        {images.length === 0 && !isUploading && (
+          <p className="text-gray-500 text-sm text-center py-6">
+            Nenhuma imagem adicionada.
+          </p>
+        )}
+
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 w-full max-w-5xl px-4">
+          {images.map((img, idx) => (
+            <div
+              key={idx}
+              className="relative aspect-square rounded-2xl overflow-hidden border-2 border-pink-300/50 shadow-md bg-white group"
+            >
+              <Image
+                src={img}
+                alt={`Imagem ${idx + 1}`}
+                fill
+                sizes="(max-width: 768px) 50vw, (max-width: 1200px) 25vw, 20vw"
+                className="object-cover transition-transform duration-200 group-hover:scale-105"
+              />
+
+              {/* Botões de ação */}
+              <div className="absolute top-2 right-2 flex gap-2 opacity-90">
+                <button
+                  onClick={() => handleEditImage(idx)}
+                  className="w-9 h-9 bg-pink-200 hover:bg-pink-300 text-white font-bold rounded-md shadow-md flex items-center justify-center transition"
+                  title="Editar imagem"
+                >
+                  ✏️
+                </button>
+                <button
+                  onClick={() => handleRemove(idx)}
+                  className="w-9 h-9 bg-pink-200 hover:bg-pink-300 text-white font-bold rounded-md shadow-md flex items-center justify-center transition"
+                  title="Excluir imagem"
+                >
+                  🗑️
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+    );
+  }
+
+  // Modo visualização normal (não editando)
   let visibleImagesDesktop: string[] = [];
   if (images.length <= 3) {
     visibleImagesDesktop = images;
@@ -97,18 +205,6 @@ export default function ImageSlider({
         </p>
       )}
 
-      {isEditing && (
-        <label className="mb-4 bg-pink-400 hover:bg-pink-300 text-white px-4 py-2 rounded-lg cursor-pointer shadow-md transition">
-          Adicionar nova imagem
-          <input
-            type="file"
-            accept="image/*"
-            className="hidden"
-            onChange={handleUpload}
-          />
-        </label>
-      )}
-
       {isUploading && (
         <p className="text-pink-500 text-sm mt-2 text-center">
           Enviando imagem...
@@ -123,16 +219,9 @@ export default function ImageSlider({
               src={images[currentIndex]}
               alt={`Imagem ${currentIndex + 1}`}
               fill
+              sizes="100vw"
               className="object-cover"
             />
-            {isEditing && (
-              <button
-                onClick={() => handleRemove(currentIndex)}
-                className="absolute top-2 right-2 w-8 h-8 bg-red-500 text-white rounded-full shadow-md hover:bg-red-600"
-              >
-                ×
-              </button>
-            )}
           </div>
         )}
 
@@ -142,14 +231,13 @@ export default function ImageSlider({
               onClick={prevImage}
               className="absolute left-2 top-1/2 transform -translate-y-1/2"
             >
-              <Image src="/leftFlex.png" alt="Anterior" width={30} height={30} />
+              <Image src="/leftFlex.png" alt="Anterior" width={30} height={30} style={{ height: "auto" }} />
             </button>
-
             <button
               onClick={nextImage}
               className="absolute right-2 top-1/2 transform -translate-y-1/2"
             >
-              <Image src="/rightFlex.png" alt="Próxima" width={30} height={30} />
+              <Image src="/rightFlex.png" alt="Próxima" width={30} height={30} style={{ height: "auto" }} />
             </button>
           </>
         )}
@@ -162,7 +250,7 @@ export default function ImageSlider({
             onClick={prevImage}
             className="absolute left-0 top-1/2 transform -translate-y-1/2"
           >
-            <Image src="/leftFlex.png" alt="Anterior" width={40} height={40} />
+            <Image src="/leftFlex.png" alt="Anterior" width={40} height={40} style={{ height: "auto" }} />
           </button>
         )}
 
@@ -177,18 +265,9 @@ export default function ImageSlider({
                   src={img}
                   alt={`Imagem ${currentIndex + idx + 1}`}
                   fill
+                  sizes="(max-width: 768px) 100vw, (max-width: 1200px) 33vw, 25vw"
                   className="object-cover"
                 />
-                {isEditing && (
-                  <button
-                    onClick={() =>
-                      handleRemove((currentIndex + idx) % images.length)
-                    }
-                    className="absolute top-2 right-2 w-8 h-8 bg-red-500 text-white rounded-full shadow-md hover:bg-red-600"
-                  >
-                    ×
-                  </button>
-                )}
               </div>
             </div>
           ))}
@@ -199,7 +278,7 @@ export default function ImageSlider({
             onClick={nextImage}
             className="absolute right-0 top-1/2 transform -translate-y-1/2"
           >
-            <Image src="/rightFlex.png" alt="Próxima" width={40} height={40} />
+            <Image src="/rightFlex.png" alt="Próxima" width={40} height={40} style={{ height: "auto" }} />
           </button>
         )}
       </div>

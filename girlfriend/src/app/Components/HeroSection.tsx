@@ -89,7 +89,7 @@ export default function HeroSection({
         whileTap={{ scale: 0.9 }}
         className="absolute bottom-24 bg-white/20 text-white backdrop-blur-md border border-white/30 rounded-full px-5 py-2 text-sm sm:text-base font-semibold hover:bg-white/30 transition"
       >
-        {isPlaying ? "⏸ Pausar música" : "Tocar música"}
+        {isPlaying ? "Pausar música" : "Tocar música"}
       </motion.button>
 
       {/* 👇 Animação do texto 'Role para ver mais' */}
